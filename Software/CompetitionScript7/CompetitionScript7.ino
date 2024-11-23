@@ -19,6 +19,7 @@
 #include <Queue.h>
 #include "ICM_20948.h"
 #include <Wire.h>
+#include <SparkFun_Qwiic_Optical_Sensor.h>
 
 int targetTime = 7; // in seconds
 int DIS1 = 18500;     // 22000
@@ -188,6 +189,9 @@ int timeLeft; //targetTime - currentTime
 Queue<int, 50> commandQueue;
 Queue<int, 50> paramQueue;
 
+// Optical Flow Sensor
+QwiicOpticalFlow myOpticalFlow;
+
 void setup() {
   motorShield.begin();
   Serial.begin(115200);
@@ -250,6 +254,13 @@ void setup() {
     }
   }
   /**/
+
+  // Initialize the Optical Flow sensor
+  if (myOpticalFlow.begin() == false) {
+    Serial.println("Qwiic Optical Flow Sensor not detected. Check wiring.");
+    while (1);
+  }
+  Serial.println("Qwiic Optical Flow Sensor detected.");
 
   // initialize distance sensors
   pinMode(sensorLTrigPin, OUTPUT);
@@ -404,6 +415,23 @@ void setup() {
 
 void loop() {
   checkButton();
+
+  // Read the Optical Flow sensor data
+  if (myOpticalFlow.dataReady()) {
+    myOpticalFlow.update();
+    int deltaX = myOpticalFlow.deltaX();
+    int deltaY = myOpticalFlow.deltaY();
+
+    // Update the robot's position based on the sensor data
+    encoderValueL += deltaX;
+    encoderValueR += deltaY;
+
+    Serial.print("Delta X: ");
+    Serial.print(deltaX);
+    Serial.print(" Delta Y: ");
+    Serial.println(deltaY);
+  }
+
   updateIMU();
   /*
   Serial.println(orientation);
